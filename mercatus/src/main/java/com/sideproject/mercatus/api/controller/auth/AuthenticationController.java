@@ -1,5 +1,7 @@
 package com.sideproject.mercatus.api.controller.auth;
 
+import com.sideproject.mercatus.api.model.LoginBody;
+import com.sideproject.mercatus.api.model.LoginResponse;
 import com.sideproject.mercatus.api.model.RegistrationBody;
 import com.sideproject.mercatus.exceptions.UserAlreadyExistException;
 import com.sideproject.mercatus.service.UserService;
@@ -20,9 +22,21 @@ public class AuthenticationController {
     public ResponseEntity registerUser(@Valid @RequestBody RegistrationBody registrationBody) {
         try {
             userService.registerUser(registrationBody);
-           return ResponseEntity.ok().build();
+            return ResponseEntity.ok().build();
         } catch (UserAlreadyExistException e) {
-           return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> loginUser(@Valid @RequestBody LoginBody loginBody) {
+        String jwt = userService.loginUser(loginBody);
+        if (jwt == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        } else {
+            LoginResponse loginResponse = new LoginResponse();
+            loginResponse.setJwt(jwt);
+            return ResponseEntity.ok(loginResponse);
         }
     }
 }
