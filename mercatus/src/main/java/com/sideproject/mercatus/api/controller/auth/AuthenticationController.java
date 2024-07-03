@@ -4,12 +4,15 @@ import com.sideproject.mercatus.api.model.LoginBody;
 import com.sideproject.mercatus.api.model.LoginResponse;
 import com.sideproject.mercatus.api.model.RegistrationBody;
 import com.sideproject.mercatus.exceptions.UserAlreadyExistException;
+import com.sideproject.mercatus.model.LocalUser;
 import com.sideproject.mercatus.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -38,5 +41,10 @@ public class AuthenticationController {
             loginResponse.setJwt(jwt);
             return ResponseEntity.ok(loginResponse);
         }
+    }
+
+    @GetMapping("/me")
+    public LocalUser getLoggedInUser(@AuthenticationPrincipal LocalUser user) {
+        return user;
     }
 }
