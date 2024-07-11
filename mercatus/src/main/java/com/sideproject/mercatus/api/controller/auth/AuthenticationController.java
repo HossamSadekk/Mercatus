@@ -3,7 +3,9 @@ package com.sideproject.mercatus.api.controller.auth;
 import com.sideproject.mercatus.api.model.LoginBody;
 import com.sideproject.mercatus.api.model.LoginResponse;
 import com.sideproject.mercatus.api.model.RegistrationBody;
+import com.sideproject.mercatus.exceptions.MailFailureException;
 import com.sideproject.mercatus.exceptions.UserAlreadyExistException;
+import com.sideproject.mercatus.exceptions.UserNotVerifiedException;
 import com.sideproject.mercatus.model.LocalUser;
 import com.sideproject.mercatus.service.UserService;
 import jakarta.validation.Valid;
@@ -28,18 +30,44 @@ public class AuthenticationController {
             return ResponseEntity.ok().build();
         } catch (UserAlreadyExistException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        } catch (MailFailureException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> loginUser(@Valid @RequestBody LoginBody loginBody) {
-        String jwt = userService.loginUser(loginBody);
+        String jwt = null;
+        try {
+            jwt = userService.loginUser(loginBody);
+        } catch (UserNotVerifiedException e) {
+            LoginResponse loginResponse = new LoginResponse();
+            loginResponse.setSuccess(false);
+            String reason = "User is not verified";
+            if (e.isNewEmailSent()) {
+                reason += ",verification is already sent";
+            }
+            loginResponse.setFailureReason(reason);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(loginResponse);
+        } catch (MailFailureException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
         if (jwt == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } else {
             LoginResponse loginResponse = new LoginResponse();
             loginResponse.setJwt(jwt);
+            loginResponse.setSuccess(true);
             return ResponseEntity.ok(loginResponse);
+        }
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity verifyEmail(String token) {
+        if (userService.verifyEmail(token)) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
 
